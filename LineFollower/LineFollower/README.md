@@ -1,20 +1,11 @@
 # SOBRE
 Código do robô Lob Linha, que conquistou o 2º lugar na Wickedbotz 4º Summit Nacional de Robótica.
 
-# ATENÇÃO
-Esse código faz o uso de venv para isolar as bibliotecas do Python.
-Deve-se ativar venv antes de executar o código Python:
+Para abrir a interface web de configuração (Python 3, sem dependências extras):
 ```
-source venv/bin/activate
+python src/config_webui.py
 ```
-Para desativar:
-```
-deactivate
-```
-
-Para rodar o código python:
-```
-python configH.py
-```
+O navegador abrirá a interface local. Mantenha o terminal aberto enquanto a
+interface estiver em uso; pressione `Ctrl+C` para encerrá-la.
 # EXPLICAÇÃO DO CÓDIGO
 COLOCAR FLOW CHART AQUI

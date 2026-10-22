@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Robot Configuration Editor</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #202622;
+      --muted: #68736d;
+      --paper: #f3f5f1;
+      --surface: #fff;
+      --line: #dce2dc;
+      --green: #176b4b;
+      --green-dark: #105239;
+      --orange: #c45c31;
+      --focus: #96d7b5;
+      font-family: "Aptos", "Segoe UI Variable", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); }
+    header { padding: 28px clamp(20px, 6vw, 88px); color: #f5f8f3; background: #173f32; border-bottom: 5px solid var(--orange); }
+    .eyebrow { margin: 0 0 9px; color: #a9d5bd; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.4px; }
+    h1 { margin: 0; font-size: clamp(26px, 4vw, 38px); font-weight: 650; line-height: 1.1; }
+    header p:last-child { margin: 10px 0 0; color: #d4e4d9; font-size: 14px; }
+    main { width: min(1080px, calc(100% - 40px)); margin: 30px auto 50px; }
+    .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
+    .toolbar-label { margin: 0; color: var(--muted); font-size: 13px; }
+    .actions { display: flex; flex-wrap: wrap; gap: 9px; }
+    button, .file-button { min-height: 40px; display: inline-flex; align-items: center; justify-content: center; padding: 0 15px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); color: var(--ink); font: inherit; font-size: 13px; font-weight: 650; cursor: pointer; }
+    button:hover, .file-button:hover { border-color: #9aa9a0; }
+    button:focus-visible, .file-button:focus-visible, input:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+    button.primary { border-color: var(--green); background: var(--green); color: #fff; }
+    button.primary:hover { background: var(--green-dark); }
+    input[type="file"] { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; clip-path: inset(50%); }
+    .tabs { display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--line); }
+    .tab { flex: 0 0 auto; padding: 11px 16px; border: 0; border-bottom: 3px solid transparent; border-radius: 0; background: transparent; color: var(--muted); }
+    .tab[aria-selected="true"] { border-bottom-color: var(--orange); color: var(--ink); }
+    .parameter-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px 34px; padding: 12px 0; }
+    .parameter { min-width: 0; padding: 18px 0 16px; border-bottom: 1px solid var(--line); }
+    .field-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+    .field-heading label { font-size: 14px; font-weight: 650; }
+    .field-heading code { color: var(--muted); font-size: 11px; white-space: nowrap; }
+    .parameter p { min-height: 18px; margin: 7px 0 11px; color: var(--muted); font-size: 12px; line-height: 1.45; }
+    .input-row { display: flex; align-items: center; gap: 12px; }
+    input[type="number"] { width: 132px; height: 38px; padding: 0 10px; border: 1px solid #cbd4cd; border-radius: 3px; background: #fff; color: var(--ink); font: inherit; font-variant-numeric: tabular-nums; }
+    .range { color: var(--muted); font-size: 11px; }
+    .status { min-height: 22px; margin: 15px 0 0; color: var(--muted); font-size: 13px; }
+    .status[data-kind="error"] { color: #a33c23; }
+    .status[data-kind="success"] { color: var(--green); }
+    @media (max-width: 650px) {
+      header { padding: 24px 20px; }
+      .toolbar { align-items: flex-start; flex-direction: column; }
+      .actions { width: 100%; }
+      .actions > * { flex: 1 1 auto; }
+      .parameter-list { grid-template-columns: 1fr; }
+      .parameter p { min-height: 0; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <p class="eyebrow">RobotZero Nano / firmware settings</p>
+    <h1>Robot Configuration Editor</h1>
+    <p>Configure control, sensor, speed, and timing parameters.</p>
+  </header>
+  <main>
+    <section class="toolbar" aria-label="Configuration actions">
+      <p id="filename" class="toolbar-label">Edit defaults or load an existing config.h file.</p>
+      <div class="actions">
+        <label class="file-button" for="file-input">Load config.h</label>
+        <input id="file-input" type="file" accept=".h,text/plain">
+        <button id="save" class="primary" type="button">Save config.h</button>
+      </div>
+    </section>
+    <nav id="tabs" class="tabs" aria-label="Parameter groups"></nav>
+    <section id="parameters" class="parameter-list" aria-live="polite"></section>
+    <p id="status" class="status" role="status">Defaults loaded.</p>
+  </main>
+  <script>
+    const groups = {
+      "Speed Parameters": {
+        SPEED_STARTUP: [140, 0, 255], SPEED_TURN: [160, 0, 255],
+        SPEED_BRAKE: [180, 0, 255], SPEED_CRUISE: [200, 0, 255],
+        SPEED_SLOW: [220, 0, 255], SPEED_FAST: [235, 0, 255],
+        BASE_SLOW: [160, 0, 255], BASE_FAST: [200, 0, 255],
+      },
+      "Control Parameters": {
+        K_PROPORTIONAL_DEFAULT: [7.5, 0, 20], K_DERIVATIVE_DEFAULT: [900, 0, 2000],
+        FILTER_COEFFICIENT_DEFAULT: [0.8, 0, 1], TURN_THRESHOLD: [35, 0, 100],
+        STRAIGHT_THRESHOLD: [12, 0, 50],
+      },
+      "Sensor Parameters": {
+        SENSOR_WEIGHT_S1: [-3, -10, 10], SENSOR_WEIGHT_S2: [-1.5, -10, 10],
+        SENSOR_WEIGHT_S3: [-0.8, -10, 10], SENSOR_WEIGHT_S4: [0.8, -10, 10],
+        SENSOR_WEIGHT_S5: [1.5, -10, 10], SENSOR_WEIGHT_S6: [3, -10, 10],
+      },
+      "Timing Parameters": {
+        SETUP_DELAY: [400, 0, 2000], CALIBRATION_DELAY: [20, 0, 100],
+        MARKER_READ_INTERVAL: [5, 1, 50], DEBOUNCE_DELAY: [30, 0, 200],
+      },
+    };
+    const integerTiming = new Set(["SETUP_DELAY", "CALIBRATION_DELAY", "MARKER_READ_INTERVAL", "DEBOUNCE_DELAY"]);
+    const floatParameters = new Set([
+      "K_PROPORTIONAL_DEFAULT", "K_DERIVATIVE_DEFAULT", "FILTER_COEFFICIENT_DEFAULT",
+      "SENSOR_WEIGHT_S1", "SENSOR_WEIGHT_S2", "SENSOR_WEIGHT_S3",
+      "SENSOR_WEIGHT_S4", "SENSOR_WEIGHT_S5", "SENSOR_WEIGHT_S6",
+    ]);
+    const tabs = document.querySelector("#tabs");
+    const parameterList = document.querySelector("#parameters");
+    const status = document.querySelector("#status");
+    const filename = document.querySelector("#filename");
+    const defaults = Object.fromEntries(Object.values(groups).flatMap((items) => Object.entries(items).map(([name, [value]]) => [name, value])));
+    let values = { ...defaults };
+    let loadedValues = { ...defaults };
+    let activeGroup = Object.keys(groups)[0];
+
+    function setStatus(message, kind = "") {
+      status.textContent = message;
+      status.dataset.kind = kind;
+    }
+
+    function renderTabs() {
+      tabs.replaceChildren();
+      for (const group of Object.keys(groups)) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "tab";
+        button.textContent = group;
+        button.setAttribute("role", "tab");
+        button.setAttribute("aria-selected", String(group === activeGroup));
+        button.addEventListener("click", () => {
+          activeGroup = group;
+          renderTabs();
+          renderParameters();
+        });
+        tabs.append(button);
+      }
+    }
+
+    function renderParameters() {
+      parameterList.replaceChildren();
+      for (const [name, [defaultValue, min, max]] of Object.entries(groups[activeGroup])) {
+        const wrapper = document.createElement("div");
+        wrapper.className = "parameter";
+        const heading = document.createElement("div");
+        heading.className = "field-heading";
+        const label = document.createElement("label");
+        label.htmlFor = `field-${name}`;
+        label.textContent = name.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
+        const code = document.createElement("code");
+        code.textContent = name;
+        heading.append(label, code);
+        const input = document.createElement("input");
+        input.id = `field-${name}`;
+        input.type = "number";
+        input.step = floatParameters.has(name) ? "any" : "1";
+        input.min = min;
+        input.max = max;
+        input.value = values[name];
+        input.setAttribute("aria-label", name);
+        input.addEventListener("input", () => { values[name] = input.value; });
+        const row = document.createElement("div");
+        row.className = "input-row";
+        const range = document.createElement("span");
+        range.className = "range";
+        range.textContent = `Range: ${min} to ${max}`;
+        row.append(input, range);
+        wrapper.append(heading, row);
+        parameterList.append(wrapper);
+      }
+    }
+
+    document.querySelector("#file-input").addEventListener("change", async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      try {
+        const content = await file.text();
+        const pattern = /static\s+constexpr\s+(?:uint8_t|uint16_t|float)\s+(\w+)\s*=\s*([-+]?(?:\d+(?:\.\d*)?|\.\d+)f?)\s*;/g;
+        let match;
+        values = { ...defaults };
+        while ((match = pattern.exec(content)) !== null) {
+          if (Object.hasOwn(defaults, match[1])) {
+            values[match[1]] = Number(match[2].replace(/[fF]$/, ""));
+          }
+        }
+        loadedValues = { ...values };
+        filename.textContent = `Loaded: ${file.name}`;
+        renderParameters();
+        setStatus("Configuration loaded successfully.", "success");
+      } catch (error) {
+        setStatus(`Failed to load file: ${error.message}`, "error");
+      }
+    });
+
+    document.querySelector("#save").addEventListener("click", () => {
+      for (const [name, rawValue] of Object.entries(values)) {
+        const value = Number(rawValue);
+        const [defaultValue, min, max] = Object.values(groups).map((items) => items[name]).find(Boolean);
+        const outsideRange = value < min || value > max;
+        const unchanged = value === Number(loadedValues[name]);
+        const wrongType = Number.isInteger(defaultValue) && !integerTiming.has(name) && !floatParameters.has(name) && !Number.isInteger(value);
+        if (!Number.isFinite(value) || wrongType || outsideRange && !unchanged) {
+          setStatus(`${name} has an invalid value. Check the suggested range.`, "error");
+          return;
+        }
+        values[name] = value;
+      }
+
+      const lines = [
+        "#ifndef CONFIG_H", "#define CONFIG_H", "", "#include <Arduino.h>", "",
+        "// Debug Level", "#ifndef DEBUG_LEVEL", "#define DEBUG_LEVEL 2  // Set to speed mode by default", "#endif", "",
+        "#if DEBUG_LEVEL > 0", '#include "DataStructures.h"', "#endif", "",
+      ];
+      for (const [group, parameters] of Object.entries(groups)) {
+        lines.push(`// ${group}`);
+        for (const [name] of Object.entries(parameters)) {
+          const value = values[name];
+          if (floatParameters.has(name)) {
+            lines.push(`static constexpr float ${name} = ${value}f;`);
+          } else {
+            const type = integerTiming.has(name) ? "uint16_t" : "uint8_t";
+            lines.push(`static constexpr ${type} ${name} = ${value};`);
+          }
+        }
+        lines.push("");
+      }
+      lines.push("#endif // DEBUG_LEVEL > 0", "#endif // CONFIG_H");
+      const blob = new Blob([lines.join("\n")], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "config.h";
+      document.body.append(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setStatus("Configuration exported as config.h.", "success");
+    });
+
+    renderTabs();
+    renderParameters();
+  </script>
+</body>
+</html>
