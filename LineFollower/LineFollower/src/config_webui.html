@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Configuração do robô</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #18211f;
+      --muted: #687570;
+      --paper: #f5f6f1;
+      --surface: #ffffff;
+      --line: #dce2dc;
+      --green: #176b4b;
+      --green-dark: #105239;
+      --orange: #c45c31;
+      --focus: #96d7b5;
+      font-family: "Aptos", "Segoe UI Variable", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); }
+    header {
+      min-height: 148px;
+      padding: 28px clamp(20px, 6vw, 88px);
+      color: #f5f8f3;
+      background: #173f32;
+      border-bottom: 5px solid var(--orange);
+    }
+    .eyebrow { margin: 0 0 9px; color: #a9d5bd; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.4px; }
+    h1 { margin: 0; font-size: clamp(26px, 4vw, 38px); font-weight: 650; line-height: 1.1; }
+    header p:last-child { margin: 10px 0 0; color: #d4e4d9; font-size: 14px; }
+    main { width: min(1080px, calc(100% - 40px)); margin: 30px auto 50px; }
+    .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
+    .toolbar-label { margin: 0; color: var(--muted); font-size: 13px; }
+    .actions { display: flex; flex-wrap: wrap; gap: 9px; }
+    button { min-height: 40px; padding: 0 15px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); color: var(--ink); font: inherit; font-size: 13px; font-weight: 650; cursor: pointer; }
+    button:hover { border-color: #9aa9a0; }
+    button:focus-visible, input:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+    button.primary { border-color: var(--green); background: var(--green); color: white; }
+    button.primary:hover { background: var(--green-dark); }
+    .tabs { display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--line); }
+    .tab { flex: 0 0 auto; padding: 11px 16px; border: 0; border-bottom: 3px solid transparent; border-radius: 0; background: transparent; color: var(--muted); }
+    .tab[aria-selected="true"] { border-bottom-color: var(--orange); color: var(--ink); }
+    .parameter-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px 34px; padding: 12px 0; }
+    .parameter { min-width: 0; padding: 18px 0 16px; border-bottom: 1px solid var(--line); }
+    .field-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+    .field-heading label { font-size: 14px; font-weight: 650; }
+    .field-heading code { color: var(--muted); font-size: 11px; white-space: nowrap; }
+    .parameter p { min-height: 34px; margin: 7px 0 11px; color: var(--muted); font-size: 12px; line-height: 1.45; }
+    .input-row { display: flex; align-items: center; gap: 12px; }
+    input { width: 132px; height: 38px; padding: 0 10px; border: 1px solid #cbd4cd; border-radius: 3px; background: white; color: var(--ink); font: inherit; font-variant-numeric: tabular-nums; }
+    .range { color: var(--muted); font-size: 11px; }
+    .status { min-height: 22px; margin: 15px 0 0; color: var(--muted); font-size: 13px; }
+    .status[data-kind="error"] { color: #a33c23; }
+    .status[data-kind="success"] { color: var(--green); }
+    @media (max-width: 650px) {
+      header { min-height: 132px; padding: 24px 20px; }
+      .toolbar { align-items: flex-start; flex-direction: column; }
+      .actions { width: 100%; }
+      .actions button { flex: 1 1 auto; }
+      .parameter-list { grid-template-columns: 1fr; }
+      .parameter p { min-height: 0; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <p class="eyebrow">LineFollower / ajustes de firmware</p>
+    <h1>Configuração do robô</h1>
+    <p>Edite os parâmetros usados pelo firmware em <code>src/config.h</code>.</p>
+  </header>
+  <main>
+    <section class="toolbar" aria-label="Ações da configuração">
+      <p class="toolbar-label">Os valores padrão só são gravados após salvar.</p>
+      <div class="actions">
+        <button id="reload" type="button">Recarregar</button>
+        <button id="defaults" type="button">Restaurar padrões</button>
+        <button id="save" class="primary" type="button">Salvar configuração</button>
+      </div>
+    </section>
+    <nav id="tabs" class="tabs" aria-label="Categorias"></nav>
+    <section id="parameters" class="parameter-list" aria-live="polite"></section>
+    <p id="status" class="status" role="status">Carregando configuração...</p>
+  </main>
+  <script>
+    const tabs = document.querySelector("#tabs");
+    const parameterList = document.querySelector("#parameters");
+    const status = document.querySelector("#status");
+    let definitions = [];
+    let values = {};
+    let loadedValues = {};
+    let activeCategory = "";
+
+    function setStatus(message, kind = "") {
+      status.textContent = message;
+      status.dataset.kind = kind;
+    }
+
+    async function request(path, options = {}) {
+      const response = await fetch(path, options);
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Não foi possível concluir a operação.");
+      return result;
+    }
+
+    function renderTabs() {
+      tabs.replaceChildren();
+      const categories = [...new Set(definitions.map((item) => item.category))];
+      if (!categories.includes(activeCategory)) activeCategory = categories[0] || "";
+      for (const category of categories) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "tab";
+        button.textContent = category;
+        button.setAttribute("role", "tab");
+        button.setAttribute("aria-selected", String(category === activeCategory));
+        button.addEventListener("click", () => {
+          activeCategory = category;
+          renderTabs();
+          renderParameters();
+        });
+        tabs.append(button);
+      }
+    }
+
+    function renderParameters() {
+      parameterList.replaceChildren();
+      for (const parameter of definitions.filter((item) => item.category === activeCategory)) {
+        const wrapper = document.createElement("div");
+        wrapper.className = "parameter";
+        const heading = document.createElement("div");
+        heading.className = "field-heading";
+        const label = document.createElement("label");
+        label.htmlFor = `field-${parameter.name}`;
+        label.textContent = parameter.label;
+        const name = document.createElement("code");
+        name.textContent = parameter.name;
+        heading.append(label, name);
+        const description = document.createElement("p");
+        description.textContent = parameter.description;
+        const inputRow = document.createElement("div");
+        inputRow.className = "input-row";
+        const input = document.createElement("input");
+        input.id = `field-${parameter.name}`;
+        input.type = "number";
+        input.step = Number.isInteger(parameter.default) ? "1" : "any";
+        input.min = parameter.min_value;
+        input.max = parameter.max_value;
+        input.value = values[parameter.name] ?? parameter.default;
+        input.addEventListener("input", () => { values[parameter.name] = input.value; });
+        const range = document.createElement("span");
+        range.className = "range";
+        range.textContent = `Faixa sugerida: ${parameter.min_value} a ${parameter.max_value}`;
+        inputRow.append(input, range);
+        wrapper.append(heading, description, inputRow);
+        parameterList.append(wrapper);
+      }
+    }
+
+    async function loadConfig() {
+      try {
+        const result = await request("/api/config");
+        definitions = result.parameters;
+        values = result.values;
+        loadedValues = { ...result.values };
+        renderTabs();
+        renderParameters();
+        setStatus("Configuração carregada.");
+      } catch (error) {
+        setStatus(error.message, "error");
+      }
+    }
+
+    document.querySelector("#reload").addEventListener("click", loadConfig);
+    document.querySelector("#defaults").addEventListener("click", () => {
+      values = Object.fromEntries(definitions.map((item) => [item.name, item.default]));
+      renderParameters();
+      setStatus("Padrões restaurados. Salve para gravar em config.h.");
+    });
+    document.querySelector("#save").addEventListener("click", async () => {
+      for (const input of parameterList.querySelectorAll("input")) {
+        const name = input.id.replace("field-", "");
+        const value = Number(input.value);
+        const unchanged = value === Number(loadedValues[name]);
+        const outsideSuggestedRange = value < Number(input.min) || value > Number(input.max);
+        if (input.value === "" || !input.checkValidity() && !(unchanged && outsideSuggestedRange)) {
+          input.reportValidity();
+          setStatus("Revise os valores destacados antes de salvar.", "error");
+          return;
+        }
+        values[name] = value;
+      }
+      try {
+        const result = await request("/api/save", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ values }),
+        });
+        values = result.values;
+        loadedValues = { ...result.values };
+        renderParameters();
+        setStatus(result.message, "success");
+      } catch (error) {
+        setStatus(error.message, "error");
+      }
+    });
+
+    loadConfig();
+  </script>
+</body>
+</html>
