@@ -77,3 +77,35 @@ jobs:
           fi
           printf 'Arquivos: %s\n' "${arquivos[*]}"
           npx --yes html-validate@11.17.0 "${arquivos[@]}"
+
+  studio:
+    name: Studio
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: ESP32Sim/apps/studio
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: ESP32Sim/apps/studio/package-lock.json
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Checar tipos
+        run: npm run check
+
+      # AP-01, AP-02, AP-05 e AP-07 do studio; o board glTF é checado pelo
+      # `pretest` (gerador com --check).
+      - name: Testes do studio
+        run: npm test
+
+      - name: Build do studio
+        run: npm run build

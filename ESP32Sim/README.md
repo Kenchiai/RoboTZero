@@ -90,7 +90,8 @@ ESP32Sim/
 
 A estrutura de produto só deve ser criada quando a Fase 0 aprovar a arquitetura.
 O esqueleto atual (`CMakeLists.txt`, `cmake/`, `core/`, `include/`, `wasm/`,
-`tests/`) é o spike E0-03/E0-04 e não implica arquitetura aceita.
+`apps/studio/`, `tests/`, `tools/`) é o spike E0-03..E0-06 e não implica
+arquitetura aceita. Comandos em [`BUILD.md`](BUILD.md).
 
 ## Build
 

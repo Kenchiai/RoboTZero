@@ -52,7 +52,8 @@ gantt
 - [ ] Revisão de ToS/EULA do Wokwi e das licenças de QEMU/Velxio/Arduino.
 - [x] Spike: CMake + Emscripten + C++23 + Web Worker + `SharedArrayBuffer`
   (E0-03..05; `ctest --preset wasm` roda `wasm_smoke` e `worker_smoke`).
-- [ ] Spike: three.js carrega board glTF e atualiza LED por evento do worker.
+- [x] Spike: three.js carrega board glTF e atualiza LED por evento do worker
+  (E0-06; `npm test` em `apps/studio`, board em `tools/gen/`).
 - [ ] Spike: Cloudflare Pages/Workers com COOP/COEP e WASM.
 - [ ] Benchmark: ciclos/s, memória, tamanho, tempo de carga.
 - [ ] ADRs 0001–0004 aceitos.

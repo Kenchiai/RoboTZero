@@ -308,6 +308,11 @@ RingHeader {         /* 16 bytes */
 Tipos iniciais: `SERIAL_TX`, `PIN_CHANGE`, `IRQ`, `DEVICE_STATE`,
 `TRACE_MARK`, `ERROR`, `STOPPED`, `BREAKPOINT` (valores 1 a 8 em `abi.h`).
 
+Semântica inicial:
+
+- `PIN_CHANGE`: `code` é o GPIO e `payload` bit 0 é o nível (0/1); os bits
+  1..63 ficam reservados. `cycle` é o ciclo da mudança.
+
 Regras do ring:
 
 - SPSC: um produtor (core) e um consumidor (host). `head` e `tail` são
@@ -320,8 +325,6 @@ Regras do ring:
   bloqueia por causa do host.
 - O host drena uma vez por frame e agrega antes de tocar na UI; nenhum evento
   vira atualização de estado reativa (AP-02 do ADR 0007).
-
-O bridge drena eventos a cada frame e agrega antes de enviar à UI.
 
 ## 6. Threading e isolamento
 
@@ -486,10 +489,13 @@ ESP32Sim/
     index.html
     src/
       main.ts
-      render/
-      ui/
-      stores/
-      bridge/
+      App.svelte
+      domain/          # lógica de apresentação pura (AP-03)
+      bridge/          # worker, ABI e drenagem do ring (AP-02)
+      panels/          # catálogo de painéis por ID (AP-01)
+      render/          # three.js isolado
+      i18n/            # catálogos pt-BR/en (AP-05)
+      theme/           # tokens de cor (AP-07)
   services/compiler/
   tests/
     unit/
@@ -512,7 +518,7 @@ O projeto é um JSON versionado (fora do core) com:
 {
   "schemaVersion": 1,
   "name": "blink-c3",
-  "board": "esp32-c3-devkitm-1",
+  "board": "c3-devkit-v1",
   "chip": "esp32-c3",
   "sketch": { "files": { "sketch.ino": "..." } },
   "firmware": { "kind": "bin", "assetId": "..." },
@@ -520,7 +526,7 @@ O projeto é um JSON versionado (fora do core) com:
     { "id": "led1", "type": "led", "pins": { "A": "GPIO8" }, "position": [0, 0, 0] }
   ],
   "wires": [
-    { "from": "led1.A", "to": "board.GPIO8", "color": "red" }
+    { "from": "led1.A", "to": "board.GPIO8", "color": "wire.red" }
   ],
   "simulation": {
     "seed": 42,
@@ -536,6 +542,9 @@ O projeto é um JSON versionado (fora do core) com:
 Regras:
 
 - Migrações explícitas por `schemaVersion`.
+- `board` é o id interno e versionado do produto (ADR 0006), não o id de um
+  terceiro; nomes de placas da Espressif aparecem só como compatibilidade.
+- `color` referencia um token de tema (`wire.*`), nunca um literal (AP-07).
 - O core recebe uma representação binária compacta, não o JSON.
 - O JSON nunca entra no hot path.
 - Assets referenciados por ID/content hash, armazenados em R2/local.

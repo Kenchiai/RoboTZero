@@ -2,7 +2,7 @@
 
 Fase 0: CMake + Ninja + C++23, com build nativo para testes e build WASM via
 Emscripten. O alvo WASM é um módulo autônomo com ABI C versionada (E0-04); o
-Worker e o ring buffer entram no E0-05.
+Worker e o ring buffer entram no E0-05 e o studio three.js no E0-06.
 
 ## Pré-requisitos
 
@@ -113,6 +113,60 @@ node wasm/dev-server.cjs        # depois abra http://localhost:8080/
 `SharedArrayBuffer` exige cross-origin isolation, então o dev server manda
 `COOP: same-origin` e `COEP: require-corp` — os mesmos headers do deploy (E0-07).
 Sem eles a página mostra `crossOriginIsolated: false` e para.
+
+## Studio (E0-06)
+
+O studio fica em `apps/studio/` (Svelte 5 + Vite + TypeScript). three.js só
+entra no chunk do painel de cena, carregado sob demanda (AP-01 do ADR 0007). O
+spike carrega o board glTF e acende o LED quando o core publica `PIN_CHANGE`.
+
+### Pré-requisitos
+
+- Node 22.x ≥ 22.19, 24.x ≥ 24.11 ou 26+ (E0-01) e `npm`.
+- Build WASM do core feito: `npm run dev` copia `esp32sim.wasm` e o Worker para
+  `apps/studio/public/core/`. Sem o `.wasm`, o build passa e a página mostra o
+  erro ao carregar o core.
+
+### Comandos
+
+```bash
+cd ESP32Sim/apps/studio
+npm ci
+npm run dev        # http://localhost:5173/
+npm test           # catálogo, bundle inicial, frame, board glTF, i18n e tokens
+npm run check      # tsc --noEmit
+npm run build
+npm run preview    # http://localhost:4173/
+```
+
+`dev` e `preview` mandam `COOP: same-origin` e `COEP: require-corp`; sem
+`SharedArrayBuffer` não há ring.
+
+### Board e LED
+
+- `tools/gen/board-c3-devkit-v1.mjs` gera
+  `apps/studio/public/models/c3-devkit-v1.gltf`: aproximação funcional das
+  dimensões de um devkit C3, em milímetros, com origem no canto da placa, sem
+  logotipo ou arte de terceiro. Proveniência:
+  [`provenance/board-c3-devkit-v1.yaml`](provenance/board-c3-devkit-v1.yaml).
+- Metadados: `scenes[0].extras` (`boardId`, `unit`, `dimensions`) e o nó
+  `LED_USER` com `extras.gpio = 8`.
+- Contrato do evento (`docs/03-arquitetura.md` §5.3): em `PIN_CHANGE`, `code` é o
+  GPIO e o bit 0 de `payload` é o nível. `SimulationBridge.pump()` drena o ring
+  uma vez por frame; a UI não reage a evento de pino.
+- Até o GPIO do core existir (E1-02), o botão do studio usa
+  `esp32sim_test_emit` como hook de teste.
+
+O `.gltf` é versionado; `npm test` roda o gerador com `--check` e falha se o
+arquivo estiver desatualizado (`npm run models` regrava).
+
+### Limitações do spike
+
+- Board simplificado (não é réplica), sem pinout completo, fios ou editor.
+- Um LED em um GPIO; sem outros componentes.
+- Catálogos pt-BR/en prontos, sem troca de idioma em runtime.
+- A cena é focável e tem controles de teclado; auditoria de acessibilidade
+  automatizada fica no E1-06.
 
 ## ABI C (v0.1)
 

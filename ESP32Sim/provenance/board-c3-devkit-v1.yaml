@@ -1,0 +1,16 @@
+# Proveniência de assets — formato em docs/08-riscos-e-licencas.md §1.3.
+id: board-c3-devkit-v1
+type: 3d-model
+source: "gerado por tools/gen/board-c3-devkit-v1.mjs (histórico git)"
+author: "ESP32Sim"
+license: "pendente (docs/08-riscos-e-licencas.md §3)"
+retrieved_at: "2026-10-27"
+sha256: "8aa6decb2619496604d64531ecdea67ec969124b66174ce7140c777ad47235ed"
+modifications: >
+  Gerado por script determinístico. Aproximação funcional das dimensões de um
+  devkit C3 (25,4 x 54,4 x 1,6 mm, 15 pads por lado a 2,54 mm). Nenhum logotipo,
+  serigrafia, arte, textura ou arquivo de terceiro foi reproduzido. Coordenadas
+  em milímetros (glTF 2.0 assume metros; o consumidor converte), origem no canto
+  da placa, Y para cima.
+allowed_in_distribution: false
+reviewed_by: "clean-room-auditor, 2026-10-27"

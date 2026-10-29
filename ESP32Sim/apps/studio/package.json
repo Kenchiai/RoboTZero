@@ -1,0 +1,31 @@
+{
+  "name": "@esp32sim/studio",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "models": "node ../../tools/gen/board-c3-devkit-v1.mjs",
+    "sync:core": "node scripts/sync-core.mjs",
+    "predev": "npm run models && npm run sync:core",
+    "dev": "vite",
+    "prebuild": "npm run models && npm run sync:core",
+    "build": "vite build",
+    "prepreview": "npm run sync:core",
+    "preview": "vite preview",
+    "pretest": "npm run models -- --check",
+    "test": "vitest run",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^7.3.1",
+    "@types/node": "^22.20.5",
+    "@types/three": "^0.186.0",
+    "svelte": "^5.57.3",
+    "typescript": "~5.9.3",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
+  }
+}

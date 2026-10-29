@@ -1,0 +1,3 @@
+# O gerador do board compara o conteúdo do arquivo com a saída em memória;
+# o checkout precisa manter LF mesmo com core.autocrlf=true no Windows.
+apps/studio/public/models/*.gltf text eol=lf

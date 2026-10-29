@@ -59,6 +59,8 @@ reviewed_by: "clean-room-auditor"
 | Svelte | MIT | UI | Incluir aviso |
 | Vite | MIT | Build | Incluir aviso |
 | TypeScript | Apache-2.0 | UI | Incluir aviso |
+| Vitest | MIT | Testes do studio | Incluir aviso |
+| lightningcss | MPL-2.0 (copyleft fraco, por arquivo) | Build (transitiva do Vite) | Não distribuído; se embarcado, liberar a fonte correspondente (§3.2) |
 | Emscripten | MIT/UIUC | Build WASM | Incluir aviso |
 | CMake | BSD-3-Clause | Build | Incluir aviso |
 | Catch2 | BSL-1.0 | Testes | Incluir aviso |

@@ -61,6 +61,36 @@ A skill orienta o processo (menor mudança que resolve, teste junto, sem
 abstração especulativa). Não contém código, asset ou dado do produto e não é
 embarcada no `.wasm` nem no studio.
 
+## Dependências do studio
+
+Diretas, declaradas em [`apps/studio/package.json`](apps/studio/package.json).
+Versões exatas ficam no `package-lock.json`.
+
+| Pacote | Licença | Uso | No bundle? |
+| --- | --- | --- | --- |
+| `svelte` | MIT | UI | Sim |
+| `three` | MIT | render 3D | Sim (chunk da cena) |
+| `vite` | MIT | dev server e build | Não |
+| `@sveltejs/vite-plugin-svelte` | MIT | integração Svelte/Vite | Não |
+| `typescript` | Apache-2.0 | tipos e checagem | Não |
+| `vitest` | MIT | testes | Não |
+| `@types/three` | MIT | tipos do three.js | Não |
+| `@types/node` | MIT | tipos do Node nos testes e configs | Não |
+
+Transitivas relevantes que **não** entram no bundle, mas aparecem no build:
+`lightningcss` e seus binários de plataforma (MPL-2.0, dependência do Vite; não
+habilitado como transformador de CSS) e `@dimforge/rapier3d-compat`
+(Apache-2.0, apenas tipos via `@types/three`). Se algum dia forem embarcados,
+cumprir as obrigações da licença (MPL §3.2 exige a fonte correspondente).
+
+O board `apps/studio/public/models/c3-devkit-v1.gltf` é gerado por
+`tools/gen/board-c3-devkit-v1.mjs` a partir de geometria própria: aproximação
+funcional das dimensões de um devkit C3, sem logotipo, serigrafia, arte, textura
+ou arquivo de terceiro. A licença do asset acompanha a decisão pendente do
+projeto ([`docs/08-riscos-e-licencas.md`](docs/08-riscos-e-licencas.md) §3); até
+lá, não redistribuir o arquivo separadamente. Proveniência:
+[`provenance/board-c3-devkit-v1.yaml`](provenance/board-c3-devkit-v1.yaml).
+
 ## Escopo e marcas
 
 - A licença MIT cobre a **documentação**. Não cobre o software do simulador, a

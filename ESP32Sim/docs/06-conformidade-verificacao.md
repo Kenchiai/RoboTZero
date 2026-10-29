@@ -97,7 +97,7 @@ verificação própria, e **nenhuma delas compara pixel**.
 | AP | O que prova | Teste | Nível | Bloqueia merge |
 | --- | --- | --- | --- | --- |
 | AP-01 | IDs únicos e sem órfão; bundle inicial não importa three.js nem o analisador | `studio.catalog.ids`, `studio.bundle.initial` | unitário + build | Sim |
-| AP-02 | N eventos de pino em um frame produzem uma única atualização de UI | `worker_smoke` (bridge), `studio.frame.coalesce`, `studio.frame.no-store-write` | unitário (bridge no E0-05; studio no E1-06) | Sim |
+| AP-02 | N eventos de pino em um frame produzem uma única atualização de UI | `worker_smoke` (bridge), `studio.frame.coalesce`, `studio.frame.no-store-write` | unitário (bridge no E0-05; studio no E0-06) | Sim |
 | AP-03 | Módulos puros sem DOM e sem three.js, com teste | `studio.pure.imports`, `studio.pure.coverage` | lint + unitário | Sim |
 | AP-04 | Falha de painel ou de rota não derruba o restante da tela | `studio.error.panel`, `studio.error.route` | unitário + E2E | Sim |
 | AP-05 | Nenhuma string visível inline; catálogo sem chave faltando ou órfã | `studio.i18n.inline`, `studio.i18n.catalog` | lint + unitário | Sim |
@@ -107,11 +107,16 @@ verificação própria, e **nenhuma delas compara pixel**.
 
 Regras de execução:
 
-- **AP-01 e AP-02 entram no CI no primeiro código de studio** (E0-05/E0-06);
-  os oito são exigidos no G1.
-- `worker_smoke` (`ctest --preset wasm`) já cobre o lado da bridge: N eventos
-  emitidos pelo Worker saem em uma única drenagem, sem chamada JS por ciclo. O
-  teste de coalescência na camada reativa nasce com o studio (E1-06).
+- **AP-01 e AP-02 entram no CI no primeiro código de studio** (E0-06), junto
+  com AP-05 e AP-07; os oito são exigidos no G1.
+- `worker_smoke` (`ctest --preset wasm`) cobre o lado da bridge: N eventos
+  emitidos pelo Worker saem em uma única drenagem, sem chamada JS por ciclo.
+- `apps/studio` cobre o lado da apresentação: `studio.bundle.initial` prova o
+  code split de three.js, `studio.frame.coalesce` prova a agregação por frame e
+  `studio.frame.no-store-write` impede Svelte/store no caminho de frame.
+- `studio.board.gltf` valida o contrato do board (`LED_USER`, `gpio`, unidade) e
+  confere o `sha256` do arquivo com `provenance/board-c3-devkit-v1.yaml`, então
+  regerar o asset sem atualizar a proveniência quebra o CI.
 - Testes de AP rodam no pipeline de §8.1, entre goldens e benchmark.
 - E2E de AP-04 e AP-06 roda no preview deploy, não no build local.
 - O golden de AP-08 é o **modelo** do diagrama (canais, slots, níveis), não o
