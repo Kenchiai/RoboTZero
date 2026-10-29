@@ -35,6 +35,24 @@ cd /opt/emsdk
 source ./emsdk_env.sh
 ```
 
+## Studio (E0-06)
+
+`apps/studio` é o studio mínimo (Svelte 5 + Vite + TypeScript + three.js) que
+prova o caminho core → Worker → ring → render. O `.wasm` precisa estar
+compilado antes:
+
+```bash
+cd apps/studio
+npm install
+npm run dev      # http://localhost:5173
+npm test         # lógica pura de pinos (node --test, sem dependência extra)
+npm run check    # svelte-check
+npm run build    # dist/ (three.js em chunk separado)
+```
+
+Detalhes, contrato de `PIN_CHANGE` e limitações do spike:
+[`apps/studio/README.md`](apps/studio/README.md).
+
 ## Build nativo e testes
 
 ```bash
@@ -158,9 +176,38 @@ ESP32Sim/
   include/esp32sim/     # abi.h + version.hpp gerado
   wasm/                 # módulo WASM, Worker, demo e dev server
   tests/                # testes nativos
+  apps/studio/          # studio Svelte + three.js (E0-06)
+  provenance/           # manifesto de proveniência de assets
 ```
 
-`build/` é ignorado pelo git.
+`build/`, `node_modules/` e `dist/` são ignorados pelo git.
+
+## CI
+
+`.github/workflows/esp32sim-ci.yml` roda só quando `ESP32Sim/**` muda (os outros
+projetos do repositório têm gates próprios em `ci.yml`). Três jobs:
+
+| Job | O que roda |
+| --- | --- |
+| `nativo` | `cmake --preset native`, build e `ctest --preset native` |
+| `wasm` | emsdk oficial, `cmake --preset wasm`, build, `ctest --preset wasm`, publica `esp32sim.wasm` como artefato |
+| `studio` | baixa o artefato, `npm ci`, `npm test`, `npm run check`, `npm run build` |
+
+O emsdk é instalado por `git clone` do repositório oficial, sem action de
+terceiros: o build vira artefato distribuído e não convém depender de uma action
+externa para produzi-lo.
+
+Rodar o mesmo pipeline na máquina:
+
+```bash
+cd ESP32Sim
+cmake --preset native && cmake --build --preset native && ctest --preset native
+
+# com EMSDK definido (ver Instalação no Windows)
+cmake --preset wasm && cmake --build --preset wasm && ctest --preset wasm
+
+cd apps/studio && npm ci && npm test && npm run check && npm run build
+```
 
 ## Limitação conhecida
 

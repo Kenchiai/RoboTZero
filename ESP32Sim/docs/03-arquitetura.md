@@ -308,6 +308,11 @@ RingHeader {         /* 16 bytes */
 Tipos iniciais: `SERIAL_TX`, `PIN_CHANGE`, `IRQ`, `DEVICE_STATE`,
 `TRACE_MARK`, `ERROR`, `STOPPED`, `BREAKPOINT` (valores 1 a 8 em `abi.h`).
 
+`PIN_CHANGE` carrega `code` = GPIO e `payload` = nível (0 = baixo, != 0 =
+alto). O produtor real é o GPIO do SoC (E1-02); até lá, o hook de teste
+`esp32sim_test_emit` é o único produtor; o studio o usa como estímulo de
+bancada (E0-06).
+
 Regras do ring:
 
 - SPSC: um produtor (core) e um consumidor (host). `head` e `tail` são
