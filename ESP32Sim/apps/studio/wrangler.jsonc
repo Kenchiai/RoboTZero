@@ -1,0 +1,8 @@
+// Projeto Pages do studio (E0-07). Sem bindings, sem vars: o deploy é
+// estático. API/D1/R2 entram no E1-08 em outro serviço.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "esp32sim",
+  "pages_build_output_dir": "./dist",
+  "compatibility_date": "2026-10-01"
+}

@@ -1,0 +1,32 @@
+# Headers do deploy (Cloudflare Pages). Copiado de public/ para dist/ pelo Vite.
+#
+# Regras que casam com a mesma URL somam cabeçalhos (Pages não sobrescreve),
+# então `Cache-Control` aparece uma única vez por rota: repetir o nome faria o
+# Pages juntar os valores com vírgula.
+#
+# COOP/COEP são obrigatórios para `SharedArrayBuffer` (docs/03 §6.3, docs/07 §3.1).
+
+/*
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp
+  Cross-Origin-Resource-Policy: same-origin
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+
+# Assets do Vite têm hash no nome: cache imutável.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# HTML sempre revalidado para não servir uma entrada velha apontando para
+# assets que já não existem.
+/
+  Cache-Control: no-cache
+
+/index.html
+  Cache-Control: no-cache
+
+# glTF da placa: muda raramente e não tem hash no nome.
+/board/*
+  Cache-Control: public, max-age=86400

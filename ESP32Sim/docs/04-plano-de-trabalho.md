@@ -54,7 +54,10 @@ gantt
   (E0-03..05; `ctest --preset wasm` roda `wasm_smoke` e `worker_smoke`).
 - [x] Spike: three.js carrega board glTF e atualiza LED por evento do worker
   (E0-06; `apps/studio`, ver [`apps/studio/README.md`](../apps/studio/README.md)).
-- [ ] Spike: Cloudflare Pages/Workers com COOP/COEP e WASM.
+- [ ] Spike: Cloudflare Pages com COOP/COEP e WASM (E0-07 **parcial**: a
+  infraestrutura está pronta — `_headers`, `wrangler.jsonc`, smoke e workflow —
+  e validada em `wrangler pages dev`; o **deploy público** depende de
+  `CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID` no repositório).
 - [ ] Benchmark: ciclos/s, memória, tamanho, tempo de carga.
 - [ ] ADRs 0001–0004 aceitos.
 - [x] ADRs 0005 (paridade) e 0006 (identidade) propostos, revisados e aceitos.
@@ -72,7 +75,7 @@ gantt
 | E0-04 | Build WASM “hello core” com ABI C | wasm-toolchain | E0-03 |
 | E0-05 | Worker + SAB + ring buffer de eventos | wasm-toolchain | E0-04 |
 | E0-06 | Cena three.js + board glTF + LED | web3d | E0-05 |
-| E0-07 | Deploy Pages/Workers com COOP/COEP | cloudflare | E0-04 |
+| E0-07 | Deploy Pages/Workers com COOP/COEP (**parcial**: infra pronta, deploy público depende de secrets) | cloudflare | E0-04 |
 | E0-08 | Benchmark e relatório de desempenho | verification | E0-04 |
 | E0-09 | ADR 0001 (C++23/WASM) | lead | E0-03..08 |
 | E0-10 | ADR 0002 (ordem de chips) | lead | E0-02 |

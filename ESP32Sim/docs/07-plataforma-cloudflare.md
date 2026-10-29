@@ -204,11 +204,19 @@ Content-Security-Policy:
   script-src 'self' 'wasm-unsafe-eval';
   style-src 'self' 'unsafe-inline';
   img-src 'self' data: blob:;
-  connect-src 'self' https://api.exemplo.com;
-  worker-src 'self' blob:;
+  connect-src 'self';
+  worker-src 'self';
   frame-ancestors 'none';
+  base-uri 'self';
+  object-src 'none';
+  form-action 'none';
 ```
 
+- Implementado em `apps/studio/public/_headers` (E0-07).
+- `connect-src 'self'` hoje; a origem da API entra junto com o Worker (E1-08).
+- `worker-src 'self'` sem `blob:`: o Worker do core é um asset same-origin
+  (`?url` do Vite), não um object URL. Revisar só se algum dia houver worker
+  gerado em runtime.
 - `wasm-unsafe-eval` é necessário para WebAssembly em alguns browsers; avaliar
   alternativas e documentar.
 - Sem `unsafe-eval` para JS.

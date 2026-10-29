@@ -22,10 +22,13 @@ concurrency:
 
 env:
   NODE_VERSION: '24'
-  # emsdk não entra no cache do job: `install latest` é rápido o bastante e o
-  # cache do SDK (~1 GB) custa mais do que economiza. Revisitar se o job passar
-  # de 5 min.
-  EMSDK_VERSION: latest
+  # emsdk não entra no cache do job: `install` é rápido o bastante e o cache do
+  # SDK (~1 GB) custa mais do que economiza. Revisitar se o job passar de 5 min.
+  #
+  # Pinado e igual ao `esp32sim-deploy.yml`: se o CI testasse `latest` e o deploy
+  # publicasse outra versão, o artefato distribuído não seria o testado. Subir de
+  # versão é mudança explícita nos dois workflows, junto com BUILD.md.
+  EMSDK_VERSION: '6.0.13'
 
 jobs:
   nativo:

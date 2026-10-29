@@ -53,6 +53,84 @@ npm run build    # dist/ (three.js em chunk separado)
 Detalhes, contrato de `PIN_CHANGE` e limitações do spike:
 [`apps/studio/README.md`](apps/studio/README.md).
 
+## Deploy (E0-07)
+
+O studio vai ao ar no Cloudflare Pages (projeto `esp32sim`,
+`https://esp32sim.pages.dev`) como site estático: nenhum Worker, D1 ou R2
+participa deste deploy. Os headers de isolamento e a CSP vivem em
+`apps/studio/public/_headers`, que o Vite copia para `dist/`; o Pages aplica as
+regras na borda.
+
+Fluxo local, do build ao smoke:
+
+```bash
+cd ESP32Sim
+cmake --preset wasm && cmake --build --preset wasm   # gera o .wasm
+
+cd apps/studio
+npm ci
+npm run build                                        # dist/ com _headers
+npx wrangler pages dev dist --port 8788              # Pages local, mesmas regras
+node tools/smoke.mjs --url http://127.0.0.1:8788 --dist dist
+```
+
+`npm run smoke` é o mesmo comando com `--url http://127.0.0.1:8788 --dist dist`
+já preenchido. Ele confere, contra o servidor:
+
+- `GET /` com status 200, `COOP: same-origin`, `COEP: require-corp`,
+  `CORP: same-origin`, CSP com as diretivas exigidas e **sem** `unsafe-eval` em
+  `script-src`, `nosniff` e `Cache-Control: no-cache`;
+- `GET /board/c3-devkitm1.gltf` com status 200 e cache de 1 dia;
+- todo `*.wasm`/`*.mjs` de `dist/assets` com status 200, `application/wasm` (ou
+  `text/javascript` para `.mjs`), headers de isolamento e cache imutável.
+
+Falha sai com código 1 e uma dica por verificação; sucesso imprime `ok: N`.
+Contra produção, sem `--dist`:
+
+```bash
+node tools/smoke.mjs --url https://esp32sim.pages.dev
+```
+
+Publicar exige credenciais da Cloudflare (nunca no repositório):
+
+```bash
+npx wrangler login                 # ou CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID
+npm run deploy                     # produção, branch main
+npm run deploy:preview             # preview, branch "preview"
+```
+
+`wrangler` é devDependency pinada no `package-lock.json`; não há `latest` em
+script de deploy. O emsdk também é pinado no workflow de deploy
+(`EMSDK_VERSION: '6.0.13'`, a mesma versão da tabela de pré-requisitos): o
+artefato publicado não pode mudar sem um diff explícito no repositório.
+
+### CI/CD do deploy
+
+`.github/workflows/esp32sim-deploy.yml` roda em `push` para `main`, em
+`pull_request` e por `workflow_dispatch` (paths `ESP32Sim/**` e o próprio
+workflow). Ele repete a instalação do emsdk do `esp32sim-ci.yml` por `git clone`
+oficial, compila o WASM, instala e builda o studio e então:
+
+| Evento | O que acontece |
+| --- | --- |
+| `push`/`dispatch` em `main` | `npm run deploy` e, depois, smoke contra `https://esp32sim.pages.dev` |
+| `pull_request` | preview deploy com `--branch <branch do PR>` |
+| Sem secrets | deploy pulado, job verde, aviso no step summary |
+
+Secrets necessários no repositório (Settings → Secrets and variables →
+Actions):
+
+- `CLOUDFLARE_API_TOKEN`: token de API com permissão *Cloudflare Pages: Edit*.
+- `CLOUDFLARE_ACCOUNT_ID`: ID da conta Cloudflare.
+
+O gate do deploy é o mesmo do `npm run smoke`: um deploy só é considerado
+saudável se a borda devolver os headers de isolamento e os assets com o
+content-type correto. O projeto Pages precisa ter `main` configurado como
+branch de produção; sem isso o `--branch main` vira preview.
+
+Antes de qualquer upload, o workflow sobe `wrangler pages dev` e roda o mesmo
+smoke contra o artefato: regressão de header falha o job antes de ir ao ar.
+
 ## Build nativo e testes
 
 ```bash
@@ -195,7 +273,12 @@ projetos do repositório têm gates próprios em `ci.yml`). Três jobs:
 
 O emsdk é instalado por `git clone` do repositório oficial, sem action de
 terceiros: o build vira artefato distribuído e não convém depender de uma action
-externa para produzi-lo.
+externa para produzi-lo. A versão é pinada (`EMSDK_VERSION: '6.0.13'`) nos dois
+workflows, com o mesmo valor: o CI testa exatamente o toolchain que o deploy
+publica, e subir de versão exige alterar os dois arquivos e esta documentação.
+
+`.github/workflows/esp32sim-deploy.yml` reusa essa mesma instalação para
+publicar no Pages; ver [Deploy (E0-07)](#deploy-e0-07).
 
 Rodar o mesmo pipeline na máquina:
 
@@ -203,7 +286,7 @@ Rodar o mesmo pipeline na máquina:
 cd ESP32Sim
 cmake --preset native && cmake --build --preset native && ctest --preset native
 
-# com EMSDK definido (ver Instalação no Windows)
+# com EMSDK definido (ver Instalação no WSL)
 cmake --preset wasm && cmake --build --preset wasm && ctest --preset wasm
 
 cd apps/studio && npm ci && npm test && npm run check && npm run build

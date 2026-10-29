@@ -42,6 +42,35 @@ verdade (com `write: false`) para ler o grafo do bundler.
 Cada um foi validado por mutação: quebrar a regra de propósito faz o teste
 falhar com mensagem acionável.
 
+## Deploy (E0-07)
+
+O studio é publicado no Cloudflare Pages (projeto `esp32sim`) como site
+estático. `wrangler.jsonc` aponta `pages_build_output_dir` para `./dist`, e
+`public/_headers` leva ao deploy os headers que o dev server já manda em
+`vite.config.ts`:
+
+- `COOP: same-origin` + `COEP: require-corp` + `CORP: same-origin` (exigência
+  do `SharedArrayBuffer`);
+- CSP estrita: `script-src 'self' 'wasm-unsafe-eval'`, sem `unsafe-eval`, e
+  `worker-src 'self'` — o Worker é asset same-origin, não object URL;
+- `nosniff`, `Referrer-Policy: no-referrer` e `Permissions-Policy` negando
+  câmera, microfone e geolocalização;
+- cache: `immutable` em `/assets/*`, `no-cache` no HTML, 1 dia em `/board/*`.
+
+```bash
+npm run build
+npx wrangler pages dev dist --port 8788     # Pages local com as regras reais
+npm run smoke                               # node tools/smoke.mjs, sem dependências
+```
+
+`npm run smoke` confere status, headers, CSP e content-type dos assets
+(`application/wasm`, `text/javascript`). Contra produção:
+`node tools/smoke.mjs --url https://esp32sim.pages.dev`.
+
+Deploy real exige `CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID`; sem eles o
+workflow de deploy pula o upload. Fluxo completo em
+[`../../BUILD.md`](../../BUILD.md#deploy-e0-07).
+
 ## Contrato usado
 
 - `PIN_CHANGE`: `code` = GPIO, `payload` = nível (0 baixo, != 0 alto). É a

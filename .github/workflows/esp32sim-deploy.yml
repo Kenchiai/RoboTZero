@@ -1,0 +1,131 @@
+name: ESP32Sim deploy
+
+# Publica o studio no Cloudflare Pages (E0-07). Só o ESP32Sim: os outros
+# projetos do repositório têm gates próprios.
+#
+# Sem CLOUDFLARE_API_TOKEN/CLOUDFLARE_ACCOUNT_ID os passos de deploy são
+# pulados e o job passa: build e testes continuam valendo, e nenhum segredo
+# entra no repositório.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'ESP32Sim/**'
+      - '.github/workflows/esp32sim-deploy.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'ESP32Sim/**'
+      - '.github/workflows/esp32sim-deploy.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: esp32sim-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '24'
+  # Pinado: este workflow produz o artefato distribuído e `latest` mudaria o
+  # binário sem diff no repositório (docs/07 §4.4). 6.0.13 é a versão validada
+  # em BUILD.md; o `esp32sim-ci.yml` usa a mesma, então o que o CI testa é o que
+  # vai ao ar. Subir de versão é mudança explícita nos dois workflows.
+  EMSDK_VERSION: '6.0.13'
+  PAGES_PROJECT: esp32sim
+  PAGES_URL: https://esp32sim.pages.dev
+
+jobs:
+  deploy:
+    name: Build e deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # `secrets` não é permitido em `if` de job/step; expor como env e testar
+    # `env.X != ''` é o caminho suportado.
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Dependências de build
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends ninja-build cmake
+
+      # Mesma instalação do esp32sim-ci.yml: emsdk oficial por git clone, sem
+      # action de terceiros para produzir o artefato que vai ao ar.
+      - name: Instalar emsdk
+        run: |
+          git clone --depth 1 https://github.com/emscripten-core/emsdk.git "$RUNNER_TEMP/emsdk"
+          "$RUNNER_TEMP/emsdk/emsdk" install "$EMSDK_VERSION"
+          "$RUNNER_TEMP/emsdk/emsdk" activate "$EMSDK_VERSION"
+          echo "EMSDK=$RUNNER_TEMP/emsdk" >> "$GITHUB_ENV"
+
+      - name: Configurar WASM
+        run: cmake --preset wasm
+        working-directory: ESP32Sim
+
+      - name: Compilar WASM
+        run: cmake --build --preset wasm
+        working-directory: ESP32Sim
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: ESP32Sim/apps/studio/package-lock.json
+
+      - name: Instalar
+        run: npm ci
+        working-directory: ESP32Sim/apps/studio
+
+      - name: Build
+        run: npm run build
+        working-directory: ESP32Sim/apps/studio
+
+      # Antes do upload: sobe o Pages local (mesmo parser de `_headers`) e roda o
+      # smoke. Pega regressão de header antes de publicar, não depois.
+      - name: Smoke local do artefato
+        run: |
+          npx --no-install wrangler pages dev dist --port 8788 > /tmp/pages-dev.log 2>&1 &
+          for _ in $(seq 1 60); do
+            if curl -fsS -o /dev/null http://127.0.0.1:8788/; then break; fi
+            sleep 0.5
+          done
+          node tools/smoke.mjs --url http://127.0.0.1:8788 --dist dist
+          kill %1
+        working-directory: ESP32Sim/apps/studio
+
+      - name: Deploy de produção
+        if: >-
+          (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+          github.ref == 'refs/heads/main' &&
+          env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        run: npm run deploy
+        working-directory: ESP32Sim/apps/studio
+
+      - name: Deploy de preview
+        if: >-
+          github.event_name == 'pull_request' &&
+          env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        run: npx --no-install wrangler pages deploy dist --project-name "$PAGES_PROJECT" --branch "$PREVIEW_BRANCH"
+        working-directory: ESP32Sim/apps/studio
+        env:
+          PREVIEW_BRANCH: ${{ github.head_ref }}
+
+      - name: Deploy pulado (sem secrets)
+        if: env.CLOUDFLARE_API_TOKEN == '' || env.CLOUDFLARE_ACCOUNT_ID == ''
+        run: |
+          echo "### Deploy pulado" >> "$GITHUB_STEP_SUMMARY"
+          echo "Configure os secrets \`CLOUDFLARE_API_TOKEN\` e \`CLOUDFLARE_ACCOUNT_ID\` no repositório para publicar em $PAGES_URL." >> "$GITHUB_STEP_SUMMARY"
+
+      # Depois do deploy: headers reais na borda, não os do build local.
+      - name: Smoke de produção
+        if: >-
+          (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+          github.ref == 'refs/heads/main' &&
+          env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        run: node tools/smoke.mjs --url "$PAGES_URL" --dist dist
+        working-directory: ESP32Sim/apps/studio

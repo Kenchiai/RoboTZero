@@ -4,6 +4,11 @@
 - **Data:** 2026-10-22
 - **Decisores:** lead, plataforma
 
+> **Nota (E0-07):** a infraestrutura de Pages foi implementada (headers
+> COOP/COEP/CSP, `wrangler.jsonc`, smoke e workflow de deploy) e validada em
+> `wrangler pages dev`; o aceite depende do deploy público, que aguarda
+> `CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID`.
+
 ## Contexto
 
 O produto precisa hospedar o studio, APIs de projetos, assets e compilação de
