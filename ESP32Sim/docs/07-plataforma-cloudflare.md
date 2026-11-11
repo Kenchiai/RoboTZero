@@ -314,6 +314,24 @@ O E0-07 implementa a parte de produção:
 O Pages **não** compila C++: a imagem não tem Emscripten nem CMake. Por isso o
 deploy publica o artefato já testado, e não roda `vite build` de novo.
 
+#### Configuração do primeiro deploy
+
+1. Criar o projeto (uma vez):
+
+   ```bash
+   npx wrangler pages project create esp32sim-studio --production-branch main
+   ```
+
+2. Criar um token em <https://dash.cloudflare.com/profile/api-tokens> com a
+   permissão **Cloudflare Pages: Edit** (template "Edit Cloudflare Workers"
+   também serve, mas é mais amplo).
+3. Em GitHub → *Settings → Secrets and variables → Actions*, cadastrar
+   `CLOUDFLARE_API_TOKEN` e `CLOUDFLARE_ACCOUNT_ID`. Se preferir escopo por
+   ambiente, cadastre como *environment secrets* do environment `production`;
+   os dois lugares funcionam.
+4. Rodar o job de novo (*Re-run failed jobs*). O passo `Conferir segredos`
+   falha com mensagem explícita enquanto algum dos dois estiver vazio.
+
 ### 7.2 Smoke tests
 
 - Página carrega.
