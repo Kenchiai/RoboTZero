@@ -7,6 +7,7 @@
   import type { StudioScene } from './render/scene';
 
   const format = new Intl.NumberFormat();
+  const base = import.meta.env.BASE_URL;
 
   let canvas = $state<HTMLCanvasElement>();
   let hud = $state<HTMLParagraphElement>();
@@ -87,4 +88,8 @@
     <p id="hud" bind:this={hud} aria-live="polite">{status}</p>
   </header>
   <canvas bind:this={canvas} aria-label={t('scene.label')} data-led="off"></canvas>
+  <footer>
+    <p>{t('footer.disclaimer')}</p>
+    <a href={`${base}THIRD_PARTY_LICENSES.txt`}>{t('footer.licenses')}</a>
+  </footer>
 </main>

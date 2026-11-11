@@ -1,0 +1,27 @@
+# Headers do Cloudflare Pages (E0-07).
+#
+# COOP/COEP são os mesmos do `vite.config.ts` (dev/preview): sem eles o
+# `SharedArrayBuffer` não existe e o core cai para single-thread. No Pages o
+# `_headers` é o único lugar que os aplica — `vite preview` não lê este arquivo.
+#
+# CSP segue docs/07 §4.1: `wasm-unsafe-eval` é necessário para instanciar o
+# módulo; `unsafe-eval` para JavaScript continua proibido.
+#
+# `connect-src` inclui `data:` porque o glTF do board embute o buffer como
+# data URI e o three.js o busca por `fetch` — sem isso o GLTFLoader falha e a
+# cena não carrega (verificado com este `_headers` aplicado a `dist`).
+
+/*
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp
+  Cross-Origin-Resource-Policy: same-origin
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' data:; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'none'; form-action 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Assets com hash no nome: o deploy novo troca o nome do arquivo, então o
+# cache longo não serve conteúdo velho. Regra depois de `/*` para sobrepor.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

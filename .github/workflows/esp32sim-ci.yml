@@ -22,10 +22,12 @@ concurrency:
 
 env:
   NODE_VERSION: '24'
-  # emsdk não entra no cache do job: `install latest` é rápido o bastante e o
-  # cache do SDK (~1 GB) custa mais do que economiza. Revisitar se o job passar
-  # de 5 min.
-  EMSDK_VERSION: latest
+  # emsdk não entra no cache do job: instalar uma versão pinada é rápido o
+  # bastante e o cache do SDK (~1 GB) custa mais do que economiza. A versão
+  # precisa casar com `BUILD.md` e com o aviso do Emscripten em
+  # `apps/studio/tools/gen-notices.mjs`: o `.wasm` publicado tem de ser
+  # reproduzível a partir dela.
+  EMSDK_VERSION: '6.0.13'
 
 jobs:
   nativo:
@@ -73,6 +75,11 @@ jobs:
           "$RUNNER_TEMP/emsdk/emsdk" activate "$EMSDK_VERSION"
           echo "EMSDK=$RUNNER_TEMP/emsdk" >> "$GITHUB_ENV"
 
+      # Evidência de reprodutibilidade: a versão que compilou o `.wasm`
+      # publicado fica no log do job.
+      - name: Conferir a versão do emsdk
+        run: emcc --version | head -1
+
       # `wasm_smoke` e `worker_smoke` rodam o `.wasm` no Node.
       - name: Configurar Node.js
         uses: actions/setup-node@v7
@@ -105,6 +112,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: wasm
+    # Atestação de proveniência (Sigstore keyless): só o token OIDC assina.
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -138,3 +150,86 @@ jobs:
       - name: Build
         run: npm run build
         working-directory: ESP32Sim/apps/studio
+
+      # SBOM do build: `required` = runtime (three, Svelte); ferramentas de
+      # build aparecem com `cdx:npm:package:development=true`.
+      # Não trocar por `--omit=dev`: com ele o npm omite o Svelte mesmo tendo
+      # o pacote em `dependencies` (verificado em 2026-11-11), e a SBOM do
+      # artefato sairia sem um dos runtimes embarcados.
+      - name: SBOM
+        run: npm sbom --sbom-format cyclonedx > "$RUNNER_TEMP/sbom.cdx.json"
+        working-directory: ESP32Sim/apps/studio
+
+      - name: Empacotar o artefato
+        run: tar -czf "$RUNNER_TEMP/studio-dist.tar.gz" -C ESP32Sim/apps/studio dist
+
+      - name: Publicar SBOM e pacote
+        uses: actions/upload-artifact@v7
+        with:
+          name: esp32sim-studio
+          path: |
+            ${{ runner.temp }}/studio-dist.tar.gz
+            ${{ runner.temp }}/sbom.cdx.json
+          if-no-files-found: error
+          retention-days: 7
+
+      # Assinatura keyless do pacote e da SBOM (item §8.3 de docs/08).
+      # Pull request de fork não tem id-token: atesta apenas em push.
+      - name: Atestar proveniência
+        if: github.event_name == 'push'
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: |
+            ${{ runner.temp }}/studio-dist.tar.gz
+            ${{ runner.temp }}/sbom.cdx.json
+
+  deploy:
+    name: Deploy (Pages)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [nativo, studio]
+    # Só produção. PR de fork não tem segredo nem id-token; o preview por PR
+    # fica para quando houver projeto Pages separado.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment: production
+    env:
+      # Precisa ser o mesmo nome do projeto no Cloudflare Pages.
+      PAGES_PROJECT: esp32sim-studio
+    steps:
+      - name: Configurar Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Baixar o artefato
+        uses: actions/download-artifact@v8
+        with:
+          name: esp32sim-studio
+          path: ${{ runner.temp }}/artefato
+
+      # O Pages não compila C++ (a imagem não tem Emscripten/CMake): publica o
+      # `dist` que o job `studio` já testou, nunca um build feito lá.
+      - name: Extrair o site
+        run: tar -xzf "$RUNNER_TEMP/artefato/studio-dist.tar.gz" -C "$RUNNER_TEMP/artefato"
+
+      # `CLOUDFLARE_API_TOKEN` e `CLOUDFLARE_ACCOUNT_ID` são segredos do
+      # repositório. Token com permissão "Cloudflare Pages: Edit" basta.
+      - name: Publicar no Pages
+        run: >-
+          npx --yes wrangler@4.160.0 pages deploy "$RUNNER_TEMP/artefato/dist"
+          --project-name "$PAGES_PROJECT" --branch main --commit-dirty=true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      # Subconjunto de docs/07 §7.2 que dá para checar sem browser: se o
+      # `_headers` não foi aplicado, o site perde a isolação e o SharedArrayBuffer
+      # some sem erro visível.
+      - name: Smoke test
+        run: |
+          url="https://$PAGES_PROJECT.pages.dev/"
+          headers=$(curl -sSfL --retry 5 --retry-delay 2 --retry-all-errors -D - -o /dev/null "$url")
+          grep -qi '^cross-origin-opener-policy: same-origin' <<< "$headers"
+          grep -qi '^cross-origin-embedder-policy: require-corp' <<< "$headers"
+          grep -qi '^content-security-policy:.*wasm-unsafe-eval' <<< "$headers"
+          echo "OK: $url"

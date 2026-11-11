@@ -108,7 +108,21 @@ alguns clientes.
 - Core MIT/Apache e serviços/enterprise sob termos próprios.
 - Modelo comum em ferramentas de desenvolvimento.
 
-**Decisão:** pendente. Registrar em ADR antes do primeiro release público.
+### Decisão
+
+**MIT para o código do ESP32Sim**, registrada no
+[ADR 0008](adr/0008-licenca-do-projeto.md) (2026-10-29) antes do primeiro
+release público (E0-07). Escopo:
+
+| Material | Licença | Arquivo |
+| --- | --- | --- |
+| Código (core C++23, ABI, Worker, studio TS/Svelte, scripts de build) | MIT | [`LICENSE`](../LICENSE) do projeto |
+| Documentação, evidências e assets gerados (glTF do board) | CC0 1.0 | [`LICENSE`](../../LICENSE) da raiz |
+| Dependências de terceiros | as próprias (three e Svelte MIT, etc.) | [`THIRD_PARTY_NOTICES.md`](../../THIRD_PARTY_NOTICES.md) |
+
+O escopo é o diretório `ESP32Sim/`; os outros projetos do repositório mantêm
+as próprias licenças. GPL/AGPL continua restrita a ferramentas não
+distribuídas (Opção A).
 
 ## 4. Matriz de riscos
 
@@ -116,7 +130,7 @@ Escala: probabilidade (P) e impacto (I) de 1 a 5.
 
 | ID | Risco | P | I | Severidade | Mitigação | Dono |
 | --- | --- | --- | --- | --- | --- | --- |
-| R-01 | ToS/EULA do Wokwi proíbe engenharia reversa | 3 | 5 | 15 | Revisão jurídica; plano B sem REA; fontes públicas | lead/clean-room |
+| R-01 | ToS/EULA do Wokwi proíbe engenharia reversa | 3 | 5 | 15 | **`blocked`** desde 2026-10-25 ([gate](../evidence/2026-10-25/wokwi-c3-diagram-contract/gate.md)); REA só em artefatos próprios; fontes públicas | lead/clean-room |
 | R-02 | Violação de copyright por copiar código/assets | 2 | 5 | 10 | Clean-room, proveniência, revisão de diff | clean-room |
 | R-03 | GPL do QEMU contaminar distribuição | 3 | 5 | 15 | QEMU só em CI/oráculo; revisão antes de WASM | clean-room |
 | R-04 | AGPL do Velxio contaminar o produto | 2 | 5 | 10 | Não copiar; usar apenas conceitos públicos | clean-room |
@@ -183,12 +197,21 @@ Escala: probabilidade (P) e impacto (I) de 1 a 5.
 
 ## 8. Checklist de release
 
-- [ ] Todas as dependências têm licença identificada.
-- [ ] `THIRD_PARTY_NOTICES` atualizado.
-- [ ] SBOM gerada e assinada.
-- [ ] Nenhum asset sem proveniência.
-- [ ] Nenhum código proprietário copiado.
-- [ ] Termos de uso do alvo revisados.
-- [ ] Disclaimer de marcas presente.
-- [ ] Política de privacidade publicada.
-- [ ] Exportação/exclusão de dados funcionando.
+Estado em 2026-11-11, antes do primeiro deploy (E0-07). Os itens valem para o
+artefato do studio; reabrir quando o Worker API, contas e projetos entrarem.
+
+- [x] Todas as dependências têm licença identificada.
+- [x] `THIRD_PARTY_NOTICES` atualizado (distribuído, build e documentação).
+- [x] SBOM gerada e assinada (job `Studio`: `npm sbom` + atestação Sigstore).
+      Cobre as dependências npm; o `.wasm` (core C++ e runtime do Emscripten)
+      não aparece em SBOM de npm e fica registrado em `THIRD_PARTY_NOTICES` §1.
+- [x] Nenhum asset sem proveniência (manifesto assinado e teste de `sha256`).
+- [x] Nenhum código proprietário copiado.
+- [x] Termos de uso do alvo revisados — **`blocked`** desde 2026-10-25
+      ([gate](../evidence/2026-10-25/wokwi-c3-diagram-contract/gate.md));
+      `docs/01` §1/§5/§9/§11 e R-01 alinhados. Nenhuma observação do alvo.
+- [x] Disclaimer de marcas presente (rodapé do studio).
+- [x] Política de privacidade publicada — **N/A no E0-07**: demo estático, sem
+      conta, coleta, cookies ou analytics. Reabrir em E2 (contas e projetos).
+- [x] Exportação/exclusão de dados funcionando — **N/A no E0-07**: não há dado
+      de usuário. Reabrir em E2.

@@ -7,7 +7,7 @@ id: board-esp32-c3-devkitm-1
 type: 3d-model
 source: "gerado em apps/studio/tools/gen-board.mjs (caixa unitária paramétrica)"
 author: "ESP32Sim contributors"
-license: "licença do projeto (ainda não decidida — ver README.md)"
+license: "CC0-1.0"
 retrieved_at: "2026-10-28"
 sha256: "d7abf24c23e28741e43535572cb1702932bdfae18b9816ef45a38f3a5d397cce"
 modifications: >-
@@ -15,13 +15,19 @@ modifications: >-
   milímetros, sem cor e sem pinos. Não é a placa real; o modelo de E1-06
   substitui este arquivo e este manifesto.
 allowed_in_distribution: true
-reviewed_by: "pendente (clean-room-auditor)"
+reviewed_by: "clean-room-auditor (2026-10-29)"
+sources:
+  - "ESP32-C3-DevKitM-1 User Guide — RGB LED em GPIO8: https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32c3/esp32-c3-devkitm-1/user_guide.html (lido em 2026-10-29)"
 
 # Notas
 #
 # - Nenhum dado, geometria, textura ou nome interno de outro produto foi usado.
-# - Dimensões (25,4 x 17,8 mm) são fato público do ESP32-C3-DevKitM-1.
-# - O LED em GPIO8 é o LED da placa; o mapa de pinos do diagrama (UN-009)
-#   continua desconhecido e é resolvido em E1-06.
+# - O LED em GPIO8 é o RGB da placa (fonte acima). O mapa de pinos do diagrama
+#   (UN-009) continua desconhecido e é resolvido em E1-06.
+# - As dimensões da caixa (25,4 x 17,8 mm) são arbitrárias do spike, não as da
+#   placa real; o modelo de E1-06 as substitui.
+# - `retrieved_at` registra a geração do asset, não um download.
 # - Regenerar com: `node apps/studio/tools/gen-board.mjs`. O hash acima muda
 #   se o gerador mudar; atualize este arquivo junto.
+# - O sha256 é do conteúdo versionado (LF). `tools/provenance.test.ts` confere
+#   o hash e falha se o asset e este manifesto divergirem.

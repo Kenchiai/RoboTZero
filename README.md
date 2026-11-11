@@ -8,3 +8,13 @@ Projects:
 - LineFollower Robot
 - LineFollower Simulator
 - AuralFocus 
+
+## Licenças
+
+- **ESP32Sim** (`ESP32Sim/`): código sob MIT — ver [`ESP32Sim/LICENSE`](ESP32Sim/LICENSE).
+- Documentação, evidências e assets gerados desse diretório: CC0 1.0, como o
+  [`LICENSE`](LICENSE) da raiz.
+- Demais projetos: mantêm as próprias licenças (por exemplo
+  [`LineFollower/RobotZero-Nano-2024`](LineFollower/RobotZero-Nano-2024/LICENSE),
+  MIT).
+- Dependências de terceiros do ESP32Sim: [`ESP32Sim/THIRD_PARTY_NOTICES.md`](ESP32Sim/THIRD_PARTY_NOTICES.md).

@@ -13,10 +13,11 @@ do tipo **“como esta aplicação se comporta e quais artefatos ela usa?”** c
 cadeia de evidência. Não é um emulador, não gera modelos de CPU/periférico e
 não substitui datasheets, TRMs, QEMU ou hardware real.
 
-**Veredito:** adotar o REA como **ferramenta opcional de evidência na Fase 0 e
-em verificações de compatibilidade**, não como dependência do produto. O core
-C++23 deve ser especificado a partir de fontes públicas, testes e traces; o REA
-serve para mapear o comportamento observável do Wokwi e de artefatos web.
+**Veredito:** adotar o REA como **ferramenta opcional de evidência sobre
+artefatos próprios** (bundle, `.wasm`, dev server, traces locais), não como
+dependência do produto e **não** para observar o Wokwi — o gate legal de
+2026-10-25 classificou o alvo como `blocked` (ver §5 e §9). O core C++23 deve
+ser especificado a partir de fontes públicas, testes e traces.
 
 | Dimensão | Nota (0–5) | Comentário |
 | --- | --- | --- |
@@ -117,6 +118,13 @@ build nativo.
 ## 5. Limites jurídicos e de uso
 
 Esta é uma avaliação de engenharia, não parecer jurídico.
+
+**Revisão feita em 2026-10-25 — resultado `blocked`.** O ToS do Wokwi veda uso
+do serviço para produto similar/concorrente (C3), engenharia reversa (C4) e
+coleta automatizada (C2), e não há autorização escrita nem parecer jurídico. O
+detalhe está em
+[`gate.md`](../evidence/2026-10-25/wokwi-c3-diagram-contract/gate.md). Os itens
+abaixo continuam como referência para quando o alvo for desbloqueado.
 
 Antes de observar o Wokwi:
 
@@ -225,18 +233,27 @@ npx -y rea-agents@latest export-web-scripts http://127.0.0.1:9222 TARGET_ID --js
 
 ## 9. Decisão
 
-**Adotar condicionalmente.** O REA entra no fluxo da Fase 0 como ferramenta de
-descoberta e auditoria de evidência, com as seguintes condições:
+**Não observar o alvo `wokwi.com`.** A condição 2 da decisão anterior
+(revisão de ToS/EULA) foi cumprida em 2026-10-25 e o resultado foi **`blocked`**
+([`gate.md`](../evidence/2026-10-25/wokwi-c3-diagram-contract/gate.md)): as
+cláusulas C1–C4 vedam uso para produto similar/concorrente, engenharia reversa
+e coleta automatizada, e não há autorização escrita da Wokwi nem parecer
+jurídico.
 
-1. Node.js atualizado e `doctor` saudável.
-2. Revisão de ToS/EULA concluída.
-3. Perfil de navegador isolado e sem credenciais sensíveis.
-4. Evidência registrada e revisada pelo `clean-room-auditor`.
-5. Nenhum código/asset proprietário copiado para o repositório.
-6. O core C++23 não depende do REA em build, runtime ou CI.
+O REA fica **retargetado para artefatos próprios** — bundle, `.wasm` do core,
+dev server e traces locais — e para fontes de licença verificada:
 
-**Investimento estimado:** 3–5 dias de Fase 0 para setup, captura e síntese;
-1 dia por ciclo de compatibilidade futuro.
+- documentação MIT do `wokwi/wokwi-docs`, com commit pinado;
+- TRM/datasheet da Espressif;
+- Arduino-ESP32/ESP-IDF, open source, com revisão de licença;
+- hardware real e traces próprios.
+
+O alvo só volta ao escopo cumprindo o checklist de desbloqueio do gate: A1–A3
+no mínimo (autorização escrita, arquivo da autorização e parecer jurídico) e
+A4–A10. O core C++23 não depende do REA em build, runtime ou CI.
+
+**Investimento estimado:** 3–5 dias de Fase 0 para setup, captura e síntese
+quando houver alvo autorizado; 1 dia por ciclo de compatibilidade futuro.
 
 ## 10. Alternativas e complementos
 
@@ -265,5 +282,6 @@ virá de:
 - uma operação de Cloudflare barata e segura.
 
 O REA pode economizar semanas no entendimento do **frontend e dos contratos
-observáveis**, desde que usado com disciplina clean-room e sem violar termos
-aplicáveis.
+observáveis dos nossos próprios artefatos**, desde que usado com disciplina
+clean-room e sem violar termos aplicáveis. Observar o Wokwi continua `blocked`
+pelo [gate de 2026-10-25](../evidence/2026-10-25/wokwi-c3-diagram-contract/gate.md).

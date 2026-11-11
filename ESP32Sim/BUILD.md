@@ -30,8 +30,8 @@ sudo apt-get install -y cmake ninja-build clang lld build-essential
 
 git clone https://github.com/emscripten-core/emsdk.git /opt/emsdk
 cd /opt/emsdk
-./emsdk install latest
-./emsdk activate latest
+./emsdk install 6.0.13
+./emsdk activate 6.0.13
 source ./emsdk_env.sh
 ```
 

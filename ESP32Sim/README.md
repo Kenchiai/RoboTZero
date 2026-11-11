@@ -113,5 +113,14 @@ ctest --preset native
 
 ## Licença
 
-A licença do projeto ainda não foi decidida. Não distribua binários ou assets
-antes da revisão de [`docs/08-riscos-e-licencas.md`](docs/08-riscos-e-licencas.md).
+O **código deste diretório** (core C++23, ABI, Worker e studio) está sob
+**MIT** — ver [`LICENSE`](LICENSE). A decisão e o escopo estão no
+[ADR 0008](docs/adr/0008-licenca-do-projeto.md).
+
+Documentação, evidências e assets gerados (por exemplo
+`apps/studio/public/board/*.gltf`) seguem o [`LICENSE`](../LICENSE) da raiz do
+repositório, CC0 1.0. Dependências de terceiros mantêm as próprias licenças:
+ver [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+
+Os outros projetos do repositório (`AuralFocus`, `LineFollower*`) não são
+cobertos por essa decisão.

@@ -9,6 +9,8 @@ const messages = {
   'hud': 'v{version} · ABI {abi} · {cycles} ciclos · {events} eventos · {dropped} perdidos · LED {led}',
   'hud.on': 'ligado',
   'hud.off': 'desligado',
+  'footer.disclaimer': 'Projeto independente, não afiliado à Espressif ou à Wokwi.',
+  'footer.licenses': 'Licenças e avisos',
 } as const;
 
 export type MessageKey = keyof typeof messages;

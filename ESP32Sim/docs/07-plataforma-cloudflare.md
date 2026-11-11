@@ -46,6 +46,8 @@ flowchart TB
   - `Cross-Origin-Resource-Policy: same-origin`
   - `Content-Security-Policy` estrita.
   - `Cache-Control` imutável para assets com hash; `no-cache` para HTML.
+- Headers aplicados por `apps/studio/public/_headers` (o Pages não lê o
+  `vite.config.ts`).
 - Preview deployments por branch/PR.
 
 > COOP/COEP são necessários para `SharedArrayBuffer` e threads. Testar o
@@ -204,13 +206,15 @@ Content-Security-Policy:
   script-src 'self' 'wasm-unsafe-eval';
   style-src 'self' 'unsafe-inline';
   img-src 'self' data: blob:;
-  connect-src 'self' https://api.exemplo.com;
+  connect-src 'self' data:;
   worker-src 'self' blob:;
   frame-ancestors 'none';
 ```
 
 - `wasm-unsafe-eval` é necessário para WebAssembly em alguns browsers; avaliar
   alternativas e documentar.
+- `connect-src data:` é necessário porque o glTF do board embute o buffer como
+  data URI; o three.js o carrega por `fetch`.
 - Sem `unsafe-eval` para JS.
 - Sem scripts de terceiros não auditados.
 
@@ -295,6 +299,21 @@ tag → deploy staging → smoke test → deploy prod → smoke test
 - Deploy atômico; rollback por versão anterior.
 - Migrações D1 compatíveis para trás.
 
+O E0-07 implementa a parte de produção:
+
+| Item | Valor |
+| --- | --- |
+| Trigger | `push` em `main`, job `deploy` de `.github/workflows/esp32sim-ci.yml` |
+| Pré-requisito | jobs `nativo` e `studio` verdes |
+| Artefato | `esp32sim-studio` (tar do `dist` + `sbom.cdx.json`), gerado pelo `studio` |
+| Publicação | `wrangler pages deploy` sobre o `dist` extraído |
+| Projeto Pages | `esp32sim-studio` (precisa existir na conta) |
+| Segredos | `CLOUDFLARE_API_TOKEN` (Cloudflare Pages: Edit) e `CLOUDFLARE_ACCOUNT_ID` |
+| Headers | `apps/studio/public/_headers` (COOP/COEP/CORP/CSP/cache) |
+
+O Pages **não** compila C++: a imagem não tem Emscripten nem CMake. Por isso o
+deploy publica o artefato já testado, e não roda `vite build` de novo.
+
 ### 7.2 Smoke tests
 
 - Página carrega.
@@ -304,6 +323,10 @@ tag → deploy staging → smoke test → deploy prod → smoke test
 - Blink roda em menos de 10 s.
 - Share público abre.
 - Build de exemplo conclui.
+
+No E0-07 o job `deploy` roda o subconjunto automatizável: página responde e
+COOP/COEP/CSP chegam nos headers. Os demais itens exigem browser e entram
+quando houver teste de ponta a ponta.
 
 ## 8. Observabilidade
 

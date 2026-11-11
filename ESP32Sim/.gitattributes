@@ -1,0 +1,15 @@
+# O glTF é texto em LF no repositório: o sha256 do manifesto depende dos bytes.
+# `text eol=lf` normaliza no commit e força LF no checkout, inclusive no
+# Windows — sem isso o asset publicado não bate com a proveniência.
+*.gltf text eol=lf
+
+# `THIRD_PARTY_LICENSES.txt` é comparado byte a byte pelo `--check` do
+# `prebuild`: com CRLF no checkout do Windows o teste falharia sem nada errado
+# no conteúdo.
+apps/studio/public/THIRD_PARTY_LICENSES.txt text eol=lf
+
+# O parser do Cloudflare Pages lê o `_headers` como texto; LF evita depender de
+# tolerância a CRLF no deploy.
+apps/studio/public/_headers text eol=lf
+
+*.wasm binary
