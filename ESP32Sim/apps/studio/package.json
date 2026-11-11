@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "notices": "node tools/gen-notices.mjs",
+    "board": "node tools/gen-board.mjs",
     "dev": "vite",
-    "prebuild": "node tools/gen-notices.mjs --check",
+    "prebuild": "node tools/gen-notices.mjs --check && node tools/gen-board.mjs --check",
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json",

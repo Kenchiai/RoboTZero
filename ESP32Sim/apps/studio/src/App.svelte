@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
   import { connect, type CoreLink } from './bridge/core';
+  import { IsolationError } from './bridge/isolation';
   import { t } from './i18n';
   import { isHigh, LED_PIN } from './presentation/pins';
   import { readTokens } from './render/tokens';
@@ -61,7 +62,10 @@
       };
       raf = requestAnimationFrame(frame);
     } catch (error) {
-      status = t('status.error', { message: String(error) });
+      status =
+        error instanceof IsolationError
+          ? t('status.noIsolation', { requirement: error.requirement })
+          : t('status.error', { message: String(error) });
     }
   });
 
@@ -85,7 +89,9 @@
       />
       {t('bench.led', { pin: LED_PIN })}
     </label>
-    <p id="hud" bind:this={hud} aria-live="polite">{status}</p>
+    <p id="status" role="status">{status}</p>
+    <!-- Contadores mudam a cada 250 ms: fora da árvore de acessibilidade. -->
+    <p id="hud" bind:this={hud} aria-hidden="true"></p>
   </header>
   <canvas bind:this={canvas} aria-label={t('scene.label')} data-led="off"></canvas>
   <footer>

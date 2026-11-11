@@ -94,16 +94,21 @@ porém, contratos que impedem a UI de virar um segundo emulador
 ([ADR 0007](adr/0007-padroes-de-apresentacao-do-studio.md)). Cada padrão AP tem
 verificação própria, e **nenhuma delas compara pixel**.
 
-| AP | O que prova | Teste | Nível | Bloqueia merge |
+| AP | O que prova | Onde está hoje | Nível | Bloqueia merge |
 | --- | --- | --- | --- | --- |
-| AP-01 | IDs únicos e sem órfão; bundle inicial não importa three.js nem o analisador | `studio.catalog.ids`, `studio.bundle.initial` | unitário + build | Sim |
-| AP-02 | N eventos de pino em um frame produzem uma única atualização de UI | `worker_smoke` (bridge), `studio.frame.coalesce`, `studio.frame.no-store-write` | unitário (bridge no E0-05; studio no E1-06) | Sim |
-| AP-03 | Módulos puros sem DOM e sem three.js, com teste | `studio.pure.imports`, `studio.pure.coverage` | lint + unitário | Sim |
-| AP-04 | Falha de painel ou de rota não derruba o restante da tela | `studio.error.panel`, `studio.error.route` | unitário + E2E | Sim |
-| AP-05 | Nenhuma string visível inline; catálogo sem chave faltando ou órfã | `studio.i18n.inline`, `studio.i18n.catalog` | lint + unitário | Sim |
-| AP-06 | Controles operáveis por teclado; sem violação crítica de acessibilidade | `studio.a11y.keyboard`, `studio.a11y.axe` | unitário + E2E | Sim |
-| AP-07 | Nenhum literal de cor fora do arquivo de tokens; tema re-lê a paleta | `studio.theme.tokens`, `studio.theme.reload` | lint + unitário | Sim |
-| AP-08 | O mesmo trace dourado produz o mesmo diagrama de timing | `studio.trace.golden` | unitário golden | Sim |
+| AP-01 | three.js fora do grafo estático do bundle inicial | `tools/initial-graph.test.ts`; IDs duplicados/órfãos: **planejado E1-06** (catálogo de componentes) | build | Sim |
+| AP-02 | Pino lido por frame, sem store reativa; último evento do frame vence | `worker_smoke` (bridge) + `src/presentation/pins.test.ts`; coalescência de UI: **planejado E1-06** | unitário | Sim |
+| AP-03 | Módulos puros sem DOM e sem three.js | **planejado E1-06** (lint de imports + cobertura) | lint + unitário | Sim |
+| AP-04 | Falha de painel ou de rota não derruba o restante da tela | **planejado E1-06** (E2E no preview) | unitário + E2E | Sim |
+| AP-05 | Nenhuma string visível inline; catálogo sem chave faltando ou órfã | `src/i18n.test.ts` | unitário | Sim |
+| AP-06 | Controles operáveis por teclado; sem violação crítica de acessibilidade | **planejado E1-06** (E2E no preview, `axe`) | unitário + E2E | Sim |
+| AP-07 | Nenhum literal de cor fora do arquivo de tokens; token lido existe, tema re-lê a paleta | `src/render/tokens.test.ts`, `tools/board.test.ts` | unitário | Sim |
+| AP-08 | O mesmo trace dourado produz o mesmo diagrama de timing | **planejado E2** (golden do modelo) | unitário golden | Sim |
+
+Caminho em `código` é verificação que existe e roda hoje (`npm test` ou
+`ctest`); **planejado E…** é verificação que ainda não existe e entra no gate
+indicado. Nenhuma linha desta tabela descreve um teste que também não exista —
+IDs de teste inventados não bloqueiam regressão nenhuma.
 
 Regras de execução:
 

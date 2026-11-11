@@ -6,6 +6,7 @@ const messages = {
   'status.loading': 'carregando core…',
   'status.ready': 'core pronto',
   'status.error': 'falha: {message}',
+  'status.noIsolation': 'falha: {requirement} indisponível (o site precisa de COOP/COEP)',
   'hud': 'v{version} · ABI {abi} · {cycles} ciclos · {events} eventos · {dropped} perdidos · LED {led}',
   'hud.on': 'ligado',
   'hud.off': 'desligado',

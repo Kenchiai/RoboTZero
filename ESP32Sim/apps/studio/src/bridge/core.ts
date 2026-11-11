@@ -8,6 +8,7 @@ import workerUrl from '../../../../wasm/worker/esp32sim.worker.mjs?url';
 import { drain, dropped as droppedCount, EVENT } from '../../../../wasm/worker/ring.mjs';
 import type { CoreEvent } from '../../../../wasm/worker/ring.mjs';
 import { applyEvents, type PinState } from '../presentation/pins';
+import { IsolationError, missingIsolation } from './isolation';
 
 type Reply =
   | { type: 'ready'; abi: number; version: string }
@@ -33,6 +34,15 @@ export type CoreLink = {
 };
 
 export async function connect(capacity = 256): Promise<CoreLink> {
+  // Falha antes de criar o Worker: sem isolamento o ring não existe e a cena
+  // ficaria "pronta" sem nunca receber evento (falha silenciosa).
+  const missing = missingIsolation(
+    globalThis as { SharedArrayBuffer?: unknown; crossOriginIsolated?: boolean },
+  );
+  if (missing !== null) {
+    throw new IsolationError(missing);
+  }
+
   const worker = new Worker(workerUrl, { type: 'module' });
 
   let pending: ((reply: Reply) => void) | null = null;

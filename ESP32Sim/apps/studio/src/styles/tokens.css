@@ -51,6 +51,10 @@ canvas {
   block-size: 100%;
 }
 
+#status {
+  margin: 0;
+}
+
 #hud {
   margin: 0;
   font-variant-numeric: tabular-nums;

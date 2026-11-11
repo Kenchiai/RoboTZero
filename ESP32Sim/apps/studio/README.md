@@ -21,12 +21,17 @@ npm install
 npm run dev        # http://localhost:5173
 ```
 
-`npm test` roda as verificações de `node --test` (pinos, catálogo i18n e grafo
-do bundle inicial); `npm run check` roda o `svelte-check`; `npm run build` gera
-`dist/`.
+`npm test` roda as verificações de `node --test` (pinos, catálogo i18n, tokens
+de tema, glTF do board, HUD, headers, licenças, proveniência e grafo do
+bundle inicial); `npm run check` roda o `svelte-check`; `npm run build` gera
+`dist/` depois de conferir que os assets gerados estão atualizados.
 
 `npm test` também precisa do `.wasm`: o teste de grafo roda um build de
 verdade (com `write: false`) para ler o grafo do bundler.
+
+`npm run board` e `npm run notices` regeram o glTF e o arquivo de licenças. O
+`prebuild` roda os dois com `--check` e falha se o arquivo versionado divergir
+do gerador.
 
 `SharedArrayBuffer` exige cross-origin isolation: o `vite.config.ts` já manda
 `COOP: same-origin` e `COEP: require-corp` no dev e no preview.
@@ -35,9 +40,13 @@ verdade (com `write: false`) para ler o grafo do bundler.
 
 | Teste | Padrão | O que falha |
 | --- | --- | --- |
-| `src/presentation/pins.test.ts` | AP-03 | agregação de `PIN_CHANGE` por frame |
+| `src/presentation/pins.test.ts` | AP-02/AP-03 | agregação de `PIN_CHANGE` por frame; módulo puro sem DOM |
 | `src/i18n.test.ts` | AP-05 | chave usada sem entrada no catálogo; chave órfã |
+| `src/render/tokens.test.ts` | AP-07 | cor literal fora de `tokens.css`; `read()` de token inexistente |
+| `tools/board.test.ts` | AP-07 | glTF versionado divergindo do gerador; asset com cor fixa |
+| `tools/hud.test.ts` | AP-02/AP-06 | `aria-live` no HUD de contadores; região viva duplicada |
 | `tools/initial-graph.test.ts` | AP-01 | three.js alcançável por import estático a partir da entrada; three.js sumindo do build (teste vazio); cena deixando de ser import dinâmico |
+| `src/bridge/isolation.test.ts` | E0-07 | predicado de COOP/COEP deixando passar ambiente sem `SharedArrayBuffer` |
 
 Cada um foi validado por mutação: quebrar a regra de propósito faz o teste
 falhar com mensagem acionável.
